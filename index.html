@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมบัญชีรายรับ-รายจ่าย</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9;}
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;}
+        .form-group input, .form-group select, .search-bar input { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        button { width: 100%; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px;}
+        .btn-add { background-color: #007bff; color: white; }
+        .btn-clear { background-color: #dc3545; color: white; margin-top: 15px;}
+        .income { color: #28a745; font-weight: bold;}
+        .expense { color: #dc3545; font-weight: bold;}
+        ul { list-style-type: none; padding: 0; }
+        li { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center;}
+        .summary p { font-size: 16px; margin: 5px 0;}
+        .summary h3 { margin-top: 0;}
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align: center;">ระบบบัญชีรายรับ-รายจ่าย</h2>
+
+    <div class="card form-group">
+        <label>ประเภทธุรกรรม:</label>
+        <select id="type">
+            <option value="รายรับ">รายรับ</option>
+            <option value="รายจ่าย">รายจ่าย</option>
+        </select>
+        
+        <label>ชื่อรายการ:</label>
+        <input type="text" id="name" placeholder="เช่น ซื้อกาแฟ, เงินเดือนเข้า">
+
+        <label>หมวดหมู่:</label>
+        <select id="category">
+            <option value="อาหาร">🍔 อาหาร</option>
+            <option value="เดินทาง">🚗 เดินทาง</option>
+            <option value="ช้อปปิ้ง">🛍️ ช้อปปิ้ง</option>
+            <option value="เงินเดือน">💰 เงินเดือน</option>
+            <option value="อื่นๆ">📦 อื่นๆ</option>
+        </select>
+
+        <label>จำนวนเงิน (บาท):</label>
+        <input type="number" id="amount" placeholder="0.00">
+
+        <button class="btn-add" onclick="addTransaction()">+ เพิ่มรายการ</button>
+    </div>
+
+    <div class="card summary">
+        <h3>สรุปรายงานการเงิน</h3>
+        <p>รายรับรวม: <span id="totalIncome" class="income">0.00</span> บาท</p>
+        <p>รายจ่ายรวม: <span id="totalExpense" class="expense">0.00</span> บาท</p>
+        <p style="font-size: 18px; margin-top: 10px;"><strong>คงเหลือสุทธิ: <span id="netBalance">0.00</span> บาท</strong></p>
+    </div>
+
+    <div class="card">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 พิมพ์ชื่อรายการเพื่อค้นหา..." oninput="renderTransactions()">
+        </div>
+
+        <h3>ประวัติรายการ</h3>
+        <ul id="transactionList">
+        </ul>
+
+        <button class="btn-clear" onclick="clearAll()">🗑️ ล้างข้อมูลทั้งหมด</button>
+    </div>
+
+    <script>
+        let transactions = [];
+        let autoIncrementId = 1;
+
+        function addTransaction() {
+            const type = document.getElementById('type').value;
+            const name = document.getElementById('name').value.trim();
+            const category = document.getElementById('category').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                alert('กรุณากรอกชื่อรายการและจำนวนเงินให้ถูกต้อง');
+                return;
+            }
+
+            const transaction = {
+                id: autoIncrementId++,
+                type: type,
+                name: name,
+                category: category,
+                amount: amount
+            };
+
+            transactions.push(transaction);
+            
+            document.getElementById('name').value = '';
+            document.getElementById('amount').value = '';
+
+            renderTransactions();
+        }
+
+        function renderTransactions() {
+            const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
+            const list = document.getElementById('transactionList');
+            list.innerHTML = '';
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            const filteredTransactions = transactions.filter(t => 
+                t.name.toLowerCase().includes(searchKeyword)
+            );
+
+            filteredTransactions.forEach(t => {
+                if (t.type === 'รายรับ') {
+                    totalIncome += t.amount;
+                } else {
+                    totalExpense += t.amount;
+                }
+
+                const li = document.createElement('li');
+                const colorClass = t.type === 'รายรับ' ? 'income' : 'expense';
+                li.innerHTML = `
+                    <span><b>#${t.id}</b> ${t.category} | ${t.name} <small>(${t.type})</small></span>
+                    <span class="${colorClass}">${t.amount.toFixed(2)} ฿</span>
+                `;
+                list.appendChild(li);
+            });
+
+            document.getElementById('totalIncome').innerText = totalIncome.toFixed(2);
+            document.getElementById('totalExpense').innerText = totalExpense.toFixed(2);
+            document.getElementById('netBalance').innerText = (totalIncome - totalExpense).toFixed(2);
+        }
+
+        function clearAll() {
+            if (transactions.length === 0) return;
+            
+            const isConfirm = confirm('คุณต้องการล้างข้อมูลธุรกรรมทั้งหมดใช่หรือไม่?');
+            if (isConfirm) {
+                transactions = [];
+                autoIncrementId = 1;
+                document.getElementById('searchInput').value = '';
+                renderTransactions();
+            }
+        }
+    </script>
+</body>
+</html>
